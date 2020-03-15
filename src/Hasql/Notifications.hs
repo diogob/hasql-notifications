@@ -55,7 +55,7 @@ notifyPool pool channel mesg =
    use pool (statement (channel, mesg) callStatement)
    where
      callStatement = HST.Statement ("SELECT pg_notify" <> "($1, $2)") encoder HD.noResult False
-     encoder = contramap fst (HE.param $ HE.nonNullable HE.text) <> contramap snd (HE.param $ HE.nonNullable $ HE.text)
+     encoder = contramap fst (HE.param $ HE.nonNullable HE.text) <> contramap snd (HE.param $ HE.nonNullable HE.text)
 
 -- | Given a Hasql Connection, a channel and a message sends a notify command to the database
 notify :: Connection -> PgIdentifier -> Text -> IO (Either S.QueryError ())
