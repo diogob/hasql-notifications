@@ -1,14 +1,14 @@
 name:                hasql-notifications
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            LISTEN/NOTIFY support for Hasql
+description:         Use PostgreSQL Asynchronous notification support with your Hasql Types.
 homepage:            https://github.com/githubuser/hasql-notifications#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2020 Author name here
-category:            Web
+author:              Diogo Biazus
+maintainer:          diogo@biazus.ca
+copyright:           2020 Diogo Biazus
+category:            Hasql, Database, PostgreSQL
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
@@ -56,4 +56,4 @@ test-suite hasql-notifications-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/hasql-notifications
+  location: https://github.com/diogob/hasql-notifications
