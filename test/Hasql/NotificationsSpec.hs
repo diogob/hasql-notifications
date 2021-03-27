@@ -22,7 +22,7 @@ spec = do
   describe "send and receive notification" $
     describe "when I send a notification to channel my handler is listening to" $
       it "should call our notification handler" $ do
-        dbOrError <- acquire "postgres://localhost/hasql_notifications_test"
+        dbOrError <- acquire "postgres://postgres:roottoor@localhost/hasql_notifications_test"
         case dbOrError of
             Right db -> do
                 let channelToListen = toPgIdentifier "test-channel"
