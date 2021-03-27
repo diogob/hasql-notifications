@@ -33,8 +33,8 @@ import Control.Monad (void, forever)
 import Control.Concurrent (threadWaitRead)
 import Control.Exception (Exception, throw)
 
--- | A wrapped bytestring that represents a properly escaped and quoted PostgreSQL identifier
-newtype PgIdentifier = PgIdentifier ByteString deriving (Show)
+-- | A wrapped text that represents a properly escaped and quoted PostgreSQL identifier
+newtype PgIdentifier = PgIdentifier Text deriving (Show)
 
 -- | Uncatchable exceptions thrown and never caught.
 newtype FatalError = FatalError { fatalErrorMessage :: String }
@@ -42,14 +42,14 @@ newtype FatalError = FatalError { fatalErrorMessage :: String }
 
 instance Exception FatalError
 
--- | Given a PgIdentifier returns the wrapped bytestring
-fromPgIdentifier :: PgIdentifier -> ByteString
+-- | Given a PgIdentifier returns the wrapped text
+fromPgIdentifier :: PgIdentifier -> Text
 fromPgIdentifier (PgIdentifier bs) = bs
 
--- | Given a bytestring returns a properly quoted and escaped PgIdentifier
+-- | Given a text returns a properly quoted and escaped PgIdentifier
 toPgIdentifier :: Text -> PgIdentifier
 toPgIdentifier x =
-  PgIdentifier $ "\"" <> T.encodeUtf8 (strictlyReplaceQuotes x) <> "\""
+  PgIdentifier $ "\"" <> strictlyReplaceQuotes x <> "\""
   where
     strictlyReplaceQuotes :: Text -> Text
     strictlyReplaceQuotes = T.replace "\"" ("\"\"" :: Text)
@@ -71,7 +71,7 @@ notify :: Connection -- ^ Connection to be used to send the NOTIFY command
        -> Text -- ^ Payload to be sent with the notification
        -> IO (Either S.QueryError ())
 notify con channel mesg =
-   run (sql ("NOTIFY " <> fromPgIdentifier channel <> ", '" <> T.encodeUtf8 mesg <> "'")) con
+   run (sql $ T.encodeUtf8 ("NOTIFY " <> fromPgIdentifier channel <> ", '" <> mesg <> "'")) con
 
 {-| 
   Given a Hasql Connection and a channel sends a listen command to the database.
@@ -103,7 +103,7 @@ listen :: Connection -- ^ Connection to be used to send the LISTEN command
 listen con channel =
   void $ withLibPQConnection con execListen
   where
-    execListen pqCon = void $ PQ.exec pqCon $ "LISTEN " <> fromPgIdentifier channel
+    execListen pqCon = void $ PQ.exec pqCon $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
 
 -- | Given a Hasql Connection and a channel sends a unlisten command to the database
 unlisten :: Connection -- ^ Connection currently registerd by a previous 'listen' call
@@ -112,7 +112,7 @@ unlisten :: Connection -- ^ Connection currently registerd by a previous 'listen
 unlisten con channel =
   void $ withLibPQConnection con execListen
   where
-    execListen pqCon = void $ PQ.exec pqCon $ "UNLISTEN " <> fromPgIdentifier channel
+    execListen pqCon = void $ PQ.exec pqCon $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
 
 
 {-| 
