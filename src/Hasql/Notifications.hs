@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-|
   This module has functions to send commands LISTEN and NOTIFY to the database server.
   It also has a function to wait for and handle notifications on a database connection.
@@ -30,7 +31,11 @@ import qualified Data.Text.Encoding as T
 import Data.ByteString.Char8 (ByteString)
 import Data.Functor.Contravariant (contramap)
 import Control.Monad (void, forever)
+#if defined(mingw32_HOST_OS)
+import           Control.Concurrent ( threadDelay )
+#else
 import Control.Concurrent (threadWaitRead)
+#endif
 import Control.Exception (Exception, throw)
 
 -- | A wrapped text that represents a properly escaped and quoted PostgreSQL identifier
@@ -160,8 +165,13 @@ waitForNotifications sendNotification con =
           mfd <- PQ.socket pqCon
           case mfd of
             Nothing  -> panic "Error checking for PostgreSQL notifications"
+#if defined(mingw32_HOST_OS)
+            Just _ -> do
+              void $ threadDelay 1000000
+#else
             Just fd -> do
               void $ threadWaitRead fd
+#endif
               void $ PQ.consumeInput pqCon
         Just notification ->
            sendNotification (PQ.notifyRelname notification) (PQ.notifyExtra notification)
