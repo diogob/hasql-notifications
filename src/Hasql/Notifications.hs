@@ -34,7 +34,7 @@ import Control.Monad (void, forever)
 #if defined(mingw32_HOST_OS)
 import           Control.Concurrent ( threadDelay )
 #else
-import Control.Concurrent (threadWaitRead)
+import Control.Concurrent (threadWaitRead, threadDelay)
 #endif
 import Control.Exception (Exception, throw)
 
@@ -164,7 +164,7 @@ waitForNotifications sendNotification con =
         Nothing -> do
           mfd <- PQ.socket pqCon
           case mfd of
-            Nothing  -> panic "Error checking for PostgreSQL notifications"
+            Nothing  -> void $ threadDelay 1000000
 #if defined(mingw32_HOST_OS)
             Just _ -> do
               void $ threadDelay 1000000
