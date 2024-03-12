@@ -171,8 +171,11 @@ waitForNotifications sendNotification con =
 #else
             Just fd -> do
               void $ threadWaitRead fd
-#endif
-              void $ PQ.consumeInput pqCon
+
+              result <- PQ.consumeInput pqCon
+              unless result $ do
+                mError <- PQ.errorMessage pqCon
+                panic $ maybe "Error checking for PostgreSQL notifications" show mError
         Just notification ->
            sendNotification (PQ.notifyRelname notification) (PQ.notifyExtra notification)
     panic :: String -> a
