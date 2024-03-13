@@ -1,16 +1,14 @@
 module Hasql.NotificationsSpec (main, spec) where
 
-import Test.Hspec
-import Test.QuickCheck
-
 import Control.Concurrent (forkIO, killThread)
 import Control.Concurrent.MVar
 import Control.Monad (void)
-import System.Exit (die)
 import Data.ByteString
-
 import Hasql.Connection
 import Hasql.Notifications
+import System.Exit (die)
+import Test.Hspec
+import Test.QuickCheck
 
 -- `main` is here so that this module can be run from GHCi on its own.  It is
 -- not needed for automatic spec discovery.
@@ -24,15 +22,21 @@ spec = do
       it "should call our notification handler" $ do
         dbOrError <- acquire "postgres://postgres:roottoor@localhost/hasql_notifications_test"
         case dbOrError of
-            Right db -> do
-                let channelToListen = toPgIdentifier "test-channel"
-                mailbox <- newEmptyMVar :: IO (MVar ByteString)
-                listen db channelToListen
-                threadId <- forkIO $ waitForNotifications (\channel payload -> putMVar mailbox $ "Just got notification on channel " <> channel <> ": " <> payload) db
-                notify db (toPgIdentifier "test-channel") "Payload"
-                takeMVar mailbox `shouldReturn` "Just got notification on channel test-channel: Payload"
-            _ -> die "Could not open database connection"
+          Right db -> do
+            let channelToListen = toPgIdentifier "test-channel"
+            mailbox <- newEmptyMVar :: IO (MVar ByteString)
+            listen db channelToListen
+            threadId <- forkIO $ waitForNotifications (\channel payload -> putMVar mailbox $ "Just got notification on channel " <> channel <> ": " <> payload) db
+            notify db (toPgIdentifier "test-channel") "Payload"
+            takeMVar mailbox `shouldReturn` "Just got notification on channel test-channel: Payload"
+          _ -> die "Could not open database connection"
 
+  describe "FatalError show instance" $
+    it "extracts message" $
+      ( show $
+          FatalError {fatalErrorMessage = "some message"}
+      )
+        `shouldBe` "some message"
   describe "toPgIdenfier" $
     it "enclose text in quotes doubling existing ones" $
       fromPgIdentifier (toPgIdentifier "some \"identifier\"") `shouldBe` "\"some \"\"identifier\"\"\""

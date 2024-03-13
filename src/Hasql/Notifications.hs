@@ -14,6 +14,7 @@ module Hasql.Notifications
     PgIdentifier,
     toPgIdentifier,
     fromPgIdentifier,
+    FatalError (..),
   )
 where
 
@@ -39,9 +40,11 @@ newtype PgIdentifier = PgIdentifier Text deriving (Show)
 
 -- | Uncatchable exceptions thrown and never caught.
 newtype FatalError = FatalError {fatalErrorMessage :: String}
-  deriving (Show)
 
 instance Exception FatalError
+
+instance Show FatalError where
+  show = fatalErrorMessage
 
 -- | Given a PgIdentifier returns the wrapped text
 fromPgIdentifier :: PgIdentifier -> Text
