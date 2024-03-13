@@ -183,7 +183,7 @@ waitForNotifications sendNotification con =
               result <- PQ.consumeInput pqCon
               unless result $ do
                 mError <- PQ.errorMessage pqCon
-                panic $ maybe "Error checking for PostgreSQL notifications" (T.unpack . T.decodeUtf8) mError
+                panic $ maybe "Error checking for PostgreSQL notifications" (T.unpack . T.decodeUtf8Lenient) mError
         Just notification ->
           sendNotification (PQ.notifyRelname notification) (PQ.notifyExtra notification)
     panic :: String -> a
