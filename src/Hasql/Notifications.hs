@@ -118,11 +118,7 @@ listen ::
 listen con channel =
   void $ withLibPQConnection con execListen
   where
-    execListen pqCon = do
-      result <- PQ.exec pqCon $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
-      when (isNothing result) $ do
-        mError <- PQ.errorMessage pqCon
-        panic $ maybe "Error executing LISTEN" (T.unpack . T.decodeUtf8Lenient) mError
+    execListen = executeOrPanic $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
 
 -- | Given a Hasql Connection and a channel sends a unlisten command to the database
 unlisten ::
@@ -134,11 +130,14 @@ unlisten ::
 unlisten con channel =
   void $ withLibPQConnection con execUnlisten
   where
-    execUnlisten pqCon = do
-      result <- PQ.exec pqCon $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
-      when (isNothing result) $ do
-        mError <- PQ.errorMessage pqCon
-        panic $ maybe "Error executing UNLISTEN" (T.unpack . T.decodeUtf8Lenient) mError
+    execUnlisten = executeOrPanic $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
+
+executeOrPanic :: ByteString -> PQ.Connection -> IO ()
+executeOrPanic cmd pqCon = do
+  result <- PQ.exec pqCon cmd
+  when (isNothing result) $ do
+    mError <- PQ.errorMessage pqCon
+    panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
 
 -- |
 --  Given a function that handles notifications and a Hasql connection it will listen
