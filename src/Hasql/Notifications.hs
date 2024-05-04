@@ -23,7 +23,6 @@ import Control.Exception (Exception, throw)
 import Control.Monad (forever, unless, void, when)
 import Data.ByteString.Char8 (ByteString)
 import Data.Functor.Contravariant (contramap)
-import Data.Maybe (isNothing)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -134,10 +133,16 @@ unlisten con channel =
 
 executeOrPanic :: ByteString -> PQ.Connection -> IO ()
 executeOrPanic cmd pqCon = do
-  result <- PQ.exec pqCon cmd
-  when (isNothing result) $ do
-    mError <- PQ.errorMessage pqCon
-    panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
+  mResult <- PQ.exec pqCon cmd
+  case mResult of
+    Nothing -> do
+      mError <- PQ.errorMessage pqCon
+      panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
+    Just result -> do
+      status <- PQ.resultStatus result
+      when (status == PQ.FatalError) $ do
+        mError <- PQ.resultErrorMessage result
+        panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
 
 -- |
 --  Given a function that handles notifications and a Hasql connection it will listen
