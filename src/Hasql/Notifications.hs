@@ -20,7 +20,7 @@ where
 
 import Control.Concurrent (threadDelay, threadWaitRead)
 import Control.Exception (Exception, throw)
-import Control.Monad (forever, unless, void)
+import Control.Monad (forever, unless, void, when)
 import Data.ByteString.Char8 (ByteString)
 import Data.Functor.Contravariant (contramap)
 import Data.Text (Text)
@@ -117,7 +117,7 @@ listen ::
 listen con channel =
   void $ withLibPQConnection con execListen
   where
-    execListen pqCon = void $ PQ.exec pqCon $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
+    execListen = executeOrPanic $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
 
 -- | Given a Hasql Connection and a channel sends a unlisten command to the database
 unlisten ::
@@ -127,9 +127,22 @@ unlisten ::
   PgIdentifier ->
   IO ()
 unlisten con channel =
-  void $ withLibPQConnection con execListen
+  void $ withLibPQConnection con execUnlisten
   where
-    execListen pqCon = void $ PQ.exec pqCon $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
+    execUnlisten = executeOrPanic $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
+
+executeOrPanic :: ByteString -> PQ.Connection -> IO ()
+executeOrPanic cmd pqCon = do
+  mResult <- PQ.exec pqCon cmd
+  case mResult of
+    Nothing -> do
+      mError <- PQ.errorMessage pqCon
+      panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
+    Just result -> do
+      status <- PQ.resultStatus result
+      when (status == PQ.FatalError) $ do
+        mError <- PQ.resultErrorMessage result
+        panic $ maybe ("Error executing" <> show cmd) (T.unpack . T.decodeUtf8Lenient) mError
 
 -- |
 --  Given a function that handles notifications and a Hasql connection it will listen
@@ -186,5 +199,6 @@ waitForNotifications sendNotification con =
                 panic $ maybe "Error checking for PostgreSQL notifications" (T.unpack . T.decodeUtf8Lenient) mError
         Just notification ->
           sendNotification (PQ.notifyRelname notification) (PQ.notifyExtra notification)
-    panic :: String -> a
-    panic a = throw (FatalError a)
+
+panic :: String -> a
+panic a = throw (FatalError a)
