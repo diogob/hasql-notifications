@@ -81,7 +81,7 @@ notify ::
   PgIdentifier ->
   -- | Payload to be sent with the notification
   Text ->
-  IO (Either S.QueryError ())
+  IO (Either S.SessionError ())
 notify con channel mesg =
   run (sql $ T.encodeUtf8 ("NOTIFY " <> fromPgIdentifier channel <> ", '" <> mesg <> "'")) con
 
