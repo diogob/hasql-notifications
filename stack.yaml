@@ -1,7 +1,0 @@
-resolver: lts-21.7
-
-packages:
-- .
-
-# extra-deps: []
-
