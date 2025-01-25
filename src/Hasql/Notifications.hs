@@ -17,8 +17,11 @@ module Hasql.Notifications
     FatalError (..),
   )
 where
-
-import Control.Concurrent (threadDelay, threadWaitRead)
+#if defined(mingw32_HOST_OS)
+import Control.Concurrent ( threadDelay )
+#else
+import Control.Concurrent (threadWaitRead, threadDelay)
+#endif
 import Control.Exception (Exception, throw)
 import Control.Monad (forever, unless, void, when)
 import Data.ByteString.Char8 (ByteString)
@@ -190,9 +193,13 @@ waitForNotifications sendNotification con =
           mfd <- PQ.socket pqCon
           case mfd of
             Nothing -> void $ threadDelay 1000000
+#if defined(mingw32_HOST_OS)
+            Just _ -> do
+              void $ threadDelay 1000000
+#else
             Just fd -> do
               void $ threadWaitRead fd
-
+#endif
               result <- PQ.consumeInput pqCon
               unless result $ do
                 mError <- PQ.errorMessage pqCon
