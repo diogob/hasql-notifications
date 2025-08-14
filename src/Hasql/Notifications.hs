@@ -99,11 +99,13 @@ notify con channel mesg =
 --  import System.Exit (die)
 --
 --  import Hasql.Connection
+--  import Hasql.Connection.Setting
+--  import Hasql.Connection.Setting.Connection
 --  import Hasql.Notifications
 --
 --  main :: IO ()
 --  main = do
---    dbOrError <- acquire "postgres://localhost/db_name"
+--    dbOrError <- acquire [ connection $ string "postgres://localhost/db_name" ]
 --    case dbOrError of
 --        Right db -> do
 --            let channelToListen = toPgIdentifier "sample-channel"
@@ -160,6 +162,8 @@ executeOrPanic cmd pqCon = do
 --  import System.Exit (die)
 --
 --  import Hasql.Connection
+--  import Hasql.Connection.Setting
+--  import Hasql.Connection.Setting.Connection
 --  import Hasql.Notifications
 --
 --  notificationHandler :: ByteString -> ByteString -> IO()
@@ -169,7 +173,7 @@ executeOrPanic cmd pqCon = do
 --
 --  main :: IO ()
 --  main = do
---    dbOrError <- acquire "postgres://localhost/db_name"
+--    dbOrError <- acquire [ connection $ string "postgres://localhost/db_name" ]
 --    case dbOrError of
 --        Right db -> do
 --            let channelToListen = toPgIdentifier "sample-channel"
