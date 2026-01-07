@@ -5,8 +5,6 @@ import Control.Concurrent.MVar
 import Control.Monad (void)
 import Data.ByteString
 import Hasql.Connection
-import Hasql.Connection.Setting
-import Hasql.Connection.Setting.Connection
 import Hasql.Notifications
 import System.Exit (die)
 import Test.Hspec
@@ -22,7 +20,7 @@ spec = do
   describe "send and receive notification" $
     describe "when I send a notification to channel my handler is listening to" $
       it "should call our notification handler" $ do
-        dbOrError <- acquire [ connection $ string "postgres://postgres:roottoor@localhost/hasql_notifications_test"]
+        dbOrError <- acquire "postgres://postgres:roottoor@localhost/hasql_notifications_test"
         case dbOrError of
           Right db -> do
             let channelToListen = toPgIdentifier "test-channel"

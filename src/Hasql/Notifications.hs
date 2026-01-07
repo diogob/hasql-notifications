@@ -30,13 +30,14 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Database.PostgreSQL.LibPQ as PQ
-import Hasql.Connection (Connection, withLibPQConnection)
+import Hasql.Connection (Connection)
+import qualified Hasql.Connection as Connection
 import qualified Hasql.Decoders as HD
 import qualified Hasql.Encoders as HE
+import qualified Hasql.Errors as Errors
 import Hasql.Pool (Pool, UsageError, use)
-import Hasql.Session (run, sql, statement)
-import qualified Hasql.Session as S
-import qualified Hasql.Statement as HST
+import qualified Hasql.Session as Session
+import qualified Hasql.Statement as Statement
 
 -- | A wrapped text that represents a properly escaped and quoted PostgreSQL identifier
 newtype PgIdentifier = PgIdentifier Text deriving (Show)
@@ -71,9 +72,9 @@ notifyPool ::
   Text ->
   IO (Either UsageError ())
 notifyPool pool channel mesg =
-  use pool (statement (channel, mesg) callStatement)
+  use pool (Session.statement (channel, mesg) callStatement)
   where
-    callStatement = HST.Statement ("SELECT pg_notify" <> "($1, $2)") encoder HD.noResult False
+    callStatement = Statement.unpreparable "SELECT pg_notify($1, $2)" encoder HD.noResult
     encoder = contramap fst (HE.param $ HE.nonNullable HE.text) <> contramap snd (HE.param $ HE.nonNullable HE.text)
 
 -- | Given a Hasql Connection, a channel and a message sends a notify command to the database
@@ -84,9 +85,10 @@ notify ::
   PgIdentifier ->
   -- | Payload to be sent with the notification
   Text ->
-  IO (Either S.SessionError ())
+  IO (Either Errors.SessionError ())
 notify con channel mesg =
-  run (sql $ T.encodeUtf8 ("NOTIFY " <> fromPgIdentifier channel <> ", '" <> mesg <> "'")) con
+  Connection.use con $ Session.script $ mconcat $
+    ["NOTIFY ", fromPgIdentifier channel, ", '", mesg, "'"]
 
 -- |
 --  Given a Hasql Connection and a channel sends a listen command to the database.
@@ -120,9 +122,11 @@ listen ::
   PgIdentifier ->
   IO ()
 listen con channel =
-  void $ withLibPQConnection con execListen
+  void $ Connection.use con $ Session.onLibpqConnection execListen
   where
-    execListen = executeOrPanic $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
+    execListen pqCon = do
+      flip executeOrPanic pqCon $ T.encodeUtf8 $ "LISTEN " <> fromPgIdentifier channel
+      pure (Right (), pqCon)
 
 -- | Given a Hasql Connection and a channel sends a unlisten command to the database
 unlisten ::
@@ -132,9 +136,11 @@ unlisten ::
   PgIdentifier ->
   IO ()
 unlisten con channel =
-  void $ withLibPQConnection con execUnlisten
+  void $ Connection.use con $ Session.onLibpqConnection execUnlisten
   where
-    execUnlisten = executeOrPanic $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
+    execUnlisten pqCon = do
+      flip executeOrPanic pqCon $ T.encodeUtf8 $ "UNLISTEN " <> fromPgIdentifier channel
+      pure (Right (), pqCon)
 
 executeOrPanic :: ByteString -> PQ.Connection -> IO ()
 executeOrPanic cmd pqCon = do
@@ -188,7 +194,7 @@ waitForNotifications ::
   Connection ->
   IO ()
 waitForNotifications sendNotification con =
-  withLibPQConnection con $ void . forever . pqFetch
+  void $ Connection.use con $ Session.onLibpqConnection $ forever . pqFetch
   where
     pqFetch pqCon = do
       mNotification <- PQ.notifies pqCon
