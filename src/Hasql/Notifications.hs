@@ -29,7 +29,6 @@ import Data.Functor.Contravariant (contramap)
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Database.PostgreSQL.LibPQ as PQ
 import Hasql.Connection (Connection)
 import qualified Hasql.Connection as Connection
 import qualified Hasql.Decoders as HD
@@ -38,6 +37,7 @@ import qualified Hasql.Errors as Errors
 import Hasql.Pool (Pool, UsageError, use)
 import qualified Hasql.Session as Session
 import qualified Hasql.Statement as Statement
+import qualified Pqi as PQ
 
 -- | A wrapped text that represents a properly escaped and quoted PostgreSQL identifier
 newtype PgIdentifier = PgIdentifier Text deriving (Show)
@@ -101,13 +101,12 @@ notify con channel mesg =
 --  import System.Exit (die)
 --
 --  import Hasql.Connection
---  import Hasql.Connection.Setting
---  import Hasql.Connection.Setting.Connection
 --  import Hasql.Notifications
+--  import qualified Pqi.Ffi
 --
 --  main :: IO ()
 --  main = do
---    dbOrError <- acquire [ connection $ string "postgres://localhost/db_name" ]
+--    dbOrError <- acquire Pqi.Ffi.adapter "postgres://localhost/db_name"
 --    case dbOrError of
 --        Right db -> do
 --            let channelToListen = toPgIdentifier "sample-channel"
@@ -168,9 +167,8 @@ executeOrPanic cmd pqCon = do
 --  import System.Exit (die)
 --
 --  import Hasql.Connection
---  import Hasql.Connection.Setting
---  import Hasql.Connection.Setting.Connection
 --  import Hasql.Notifications
+--  import qualified Pqi.Ffi
 --
 --  notificationHandler :: ByteString -> ByteString -> IO()
 --  notificationHandler channel payload =
@@ -179,7 +177,7 @@ executeOrPanic cmd pqCon = do
 --
 --  main :: IO ()
 --  main = do
---    dbOrError <- acquire [ connection $ string "postgres://localhost/db_name" ]
+--    dbOrError <- acquire Pqi.Ffi.adapter "postgres://localhost/db_name"
 --    case dbOrError of
 --        Right db -> do
 --            let channelToListen = toPgIdentifier "sample-channel"
